@@ -211,45 +211,16 @@ class ChatAdapter(Adapter):
                 '(float):',
                 '(bool):'
             ]:
-                # Clean up the content by removing type annotations and extra formatting
-                content = self._clean_content(content)
-                
-                # Handle None values properly
-                if content and content.lower() not in ['none', 'null', '']:
-                    try:
-                        field_info = signature.output_fields.get(field_name)
-                        if field_info:
-                            # For date fields, handle None values specially
-                            if hasattr(field_info, 'annotation') and field_info.annotation == str:
-                                # Check if this looks like a date field
-                                if 'date' in field_name.lower():
-                                    if content.lower() in ['none', 'null', '(text): none', '(text): null']:
-                                        result[field_name] = None
-                                    else:
-                                        result[field_name] = content
-                                else:
-                                    result[field_name] = content
-                            else:
-                                result[field_name] = parse_value(content, field_info)
-                        else:
-                            result[field_name] = content
-                    except ValueError:
+                try:
+                    field_info = signature.output_fields.get(field_name)
+                    if field_info:
+                        result[field_name] = parse_value(content, field_info)
+                    else:
                         result[field_name] = content
-                elif content.lower() in ['none', 'null', '(text): none', '(text): null']:
-                    # Explicitly handle None values
-                    result[field_name] = None
+                except ValueError:
+                    result[field_name] = content
         
         return result
-
-    def _clean_content(self, content: str) -> str:
-        """Clean content by removing type annotations and extra formatting."""
-        # Remove type annotations like "(text): None" -> "None"
-        content = re.sub(r'^\([^)]+\):\s*', '', content.strip())
-        
-        # Remove extra whitespace and newlines
-        content = re.sub(r'\s+', ' ', content).strip()
-        
-        return content
 
     def format_field_with_value(self, fields_with_values: Dict[FieldInfoWithName, Any]) -> str:
         """Format fields with their values."""
